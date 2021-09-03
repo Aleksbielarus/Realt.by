@@ -3,20 +3,23 @@ import requests
 import csv
 
 URL = 'https://realt.by/sale/flats/'
-HEADERS = {'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36', 'accept': '*/*'}
-#https://realt.by/sale/flats/?page=2
+user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'
+accept = '*/*'
+HEADERS = {'user-agent': user_agent, 'accept': accept}
+# https://realt.by/sale/flats/?page=2
 
 FILE = 'flats.csv'
 
 
-def get_html (url, params=None):
+def get_html(url, params=None):
     r = requests.get(url, headers=HEADERS, params=params)
     return r
 
+
 def get_page_count(html):
     soup = BeautifulSoup(html, 'html.parser')
-    pagination = soup.find_all('div', class_= 'paging-list')
-    pagination = int(pagination[-1].get_text()[-5:]) # need to fix
+    pagination = soup.find_all('div', class_='paging-list')
+    pagination = int(pagination[-1].get_text()[-5:])  # need to fix
     return pagination
 
 
@@ -27,26 +30,28 @@ def get_content(html):
     pars_rows = 0
     error_rows = 0
     for item in items:
+        # a = item.find('div', class_='info-mini').find_all('span')[2].get_text(strip=True)
+        # print(a)
         try:
             flats.append({
+                'id': item.find('span', class_='justify-content-md-end').get_text(strip=True),
                 'title': item.find('a', class_='teaser-title').get_text(strip=True),
                 'link': item.find('a', class_='teaser-title').get('href'),
                 'address': item.find('div', class_='location').get_text(strip=True),
-                'info': item.find('div', class_='info-large').get_text(strip=True), # need to split for 3 col(room_num, square, floor)
+                # need to split for 3 col(room_num, square, floor)
+                'info': item.find('div', class_='info-large').get_text(strip=True),
                 'seller_name': item.find('span', class_='color-graydark').get_text(strip=True),
                 'seller_contact': item.find('span', class_='color-black').get_text(strip=True),
                 'img': item.find('img', class_='lazy').get('data-original'),
                 'usd_price': item.find('div', class_='col-auto').get_text(strip=True),
-                'byn_price': item.find('div', class_='fs-huge').get_text(strip=True)
+                'byn_price': item.find('div', class_='fs-huge').get_text(strip=True),
+                'created_at': item.find('div', class_='info-mini').find_all('span')[2].get_text(strip=True)
             })
             pars_rows += 1
         except AttributeError:
             print('Attribute error in {} row')
-            error_rows +=1
-
-        # flats.append({
-        #     'title': title,
-        # })
+            error_rows += 1
+        # need to create log
         print(f'------row {pars_rows}')
         print(f'Total valid rows {pars_rows}')
         print(f'Total failed rows {error_rows}')
@@ -56,9 +61,21 @@ def get_content(html):
 def save_file(items, path):
     with open(path, 'w', newline='') as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(['title', 'link', 'address', 'info', 'seller_name', 'seller_contact', 'img', 'usd_price', 'byn_price'])
+        writer.writerow(['title',
+                         'id',
+                         'link',
+                         'address',
+                         'info',
+                         'seller_name',
+                         'seller_contact',
+                         'img',
+                         'usd_price',
+                         'byn_price',
+                         'created_at'
+                         ])
         for item in items:
             writer.writerow([item['title'],
+                             item['id'],
                              item['link'],
                              item['address'],
                              item['info'],
@@ -66,18 +83,20 @@ def save_file(items, path):
                              item['seller_contact'],
                              item['img'],
                              item['usd_price'],
-                             item['byn_price']
+                             item['byn_price'],
+                             item['created_at']
                              ])
+
 
 def parse():
     #
     html = get_html(URL)
-    flats = []
+    print(URL)
     if html.status_code == 200:
         flats = []
         page_count = get_page_count(html.text)
         for page in range(1, page_count+1):
-        #for page in range(1, 2):
+            # for page in range(1, 2):
             print(f'Parsing page {page} from {page_count}')
             html = get_html(URL, params={'page': page})
             flats.extend(get_content(html.text))
@@ -85,5 +104,5 @@ def parse():
     else:
         print('Error')
 
-parse()
 
+parse()

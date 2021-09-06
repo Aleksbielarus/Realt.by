@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import requests
 import csv
+import Connection
 
 URL = 'https://realt.by/sale/flats/'
 user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'
@@ -9,6 +10,7 @@ HEADERS = {'user-agent': user_agent, 'accept': accept}
 # https://realt.by/sale/flats/?page=2
 
 FILE = 'flats.csv'
+dbname = 'postgres'
 
 
 def get_html(url, params=None):
@@ -88,6 +90,17 @@ def save_file(items, path):
                              ])
 
 
+def insert_last_update():
+    if __name__ == "__main__":
+        db = Connection.connect(dbname)
+        db.autocommit = True
+        cursor = db.cursor()
+        cursor.execute('''insert into data_source.tech_table(id, parsing_date, parsing_datetime)
+                          values (DEFAULT,DEFAULT,DEFAULT);
+                       ''')
+        db.close()
+
+
 def parse():
     #
     html = get_html(URL)
@@ -96,11 +109,11 @@ def parse():
         flats = []
         page_count = get_page_count(html.text)
         for page in range(1, page_count+1):
-            # for page in range(1, 2):
             print(f'Parsing page {page} from {page_count}')
             html = get_html(URL, params={'page': page})
             flats.extend(get_content(html.text))
         save_file(flats, FILE)
+        insert_last_update()
     else:
         print('Error')
 

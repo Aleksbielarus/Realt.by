@@ -8,8 +8,6 @@ URL = 'https://realt.by/sale/flats/'
 user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'
 accept = '*/*'
 HEADERS = {'user-agent': user_agent, 'accept': accept}
-# https://realt.by/sale/flats/?page=2
-
 FILE = 'flats.csv'
 dbname = 'postgres'
 
@@ -119,8 +117,7 @@ def parse():
     if html.status_code == 200:
         flats = []
         page_count = get_page_count(html.text)
- #       for page in range(1, page_count+1):
-        for page in range(1, 10):
+        for page in range(1, page_count+1):
             print(f'Parsing page {page} from {page_count}')
             html = get_html(URL, params={'page': page})
             flats.extend(get_content(html.text))
